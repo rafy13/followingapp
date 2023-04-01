@@ -18,10 +18,15 @@
                 {% if is_owner %}
                     <form method="POST" enctype="multipart/form-data" action="/users/upload-profile-image">
                         <div class="form-group">
-                            <input type="file" class="form-control-file" id="profile_image" name="profile_image">
+                            <input type="file" class="form-control-file" id="profile_image" name="profile_image" accept="image/*">
                         </div>
                         <button type="submit" class="btn btn-primary">Update Profile Image</button>
                     </form>
+                    <div class="text-danger font-weight-bold mt-3">
+                        {% for error in errors %}
+                          <li>{{error}}</li>
+                        {% endfor %}
+                    </div>
                 {% endif %}
             </div>
             {% if is_owner %}
@@ -37,7 +42,7 @@
                 </div>
             {% endif %}
         </div>
-        {% if True %}
+        {% if is_owner or is_follower %}
             <h2>Galleries</h2>
             <ul class="list-group">
                 {% for gallery in user.galleries %}

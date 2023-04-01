@@ -1,21 +1,18 @@
 from sqlalchemy.orm import Session
 from db.models.users import Follow
+from db.repository.base import BaseRepository
 
-def fetch_follow(follower_id: int, followed_id: int, db:Session):
-    return db.query(Follow) \
-        .filter(Follow.follower_id == follower_id) \
-        .filter(Follow.followed_id == followed_id) \
-        .first()
-
-def delete_follow(follow: Follow, db: Session):
-    db.delete(follow)
-    db.commit()
-
-def create_follow(follower_id: int, followed_id: int, db:Session):
-    follow = Follow(
-        followed_id=followed_id,
-        follower_id=follower_id,
-    )
-    db.add(follow)
-    db.commit()
-    return follow
+class FollowRepository(BaseRepository[Follow]):
+    def __init__(self, db: Session):
+        super().__init__(db, Follow)
+    
+    def get_by_follower_id_followed_id(self, follower_id: int, followed_id: int):
+        return self.db.query(Follow) \
+            .filter(Follow.follower_id == follower_id) \
+            .filter(Follow.followed_id == followed_id) \
+            .first()
+    
+    def create(self, **kwargs):
+        follow = Follow(**kwargs)
+        super().create(follow)
+        return follow

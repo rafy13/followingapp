@@ -8,6 +8,7 @@ Create Date: 2023-03-27 17:30:28.726113
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.sql import func
+from sqlalchemy import text
 
 # revision identifiers, used by Alembic.
 revision = '8995097fadcc'
@@ -103,10 +104,51 @@ def upgrade():
         sa.UniqueConstraint('token')
     )
 
+    conn = op.get_bind()
+    query = """
+        INSERT INTO public."user"(
+            name,
+            email,
+            profile_image,
+            hashed_password,
+            location_latitude,
+            location_longitude,
+            date_of_birth,
+            gender,
+            is_active,
+            created_at,
+            updated_at)
+        VALUES(
+            'Chris',
+            'c@mail.com',
+            'profile_pictures/1/2663095343098322638.jpg',
+            '$2b$12$G0brEfg3/Z8TlG4.TUIu0O1r22hrCL3JfI7YasB5cg4se3dQyO2rq',
+            23.7774522,90.4215606,
+            '2022-09-08 00:00:00',
+            'male',
+            true,
+            '2023-04-01 13:13:49.297616',
+            '2023-04-01 13:25:22.650657'
+        ),
+	    (
+            'Dean',
+            'd@mail.com',
+            'profile_pictures/2/adb69e93c5f2WIN.jpg',
+            '$2b$12$MB6gxHi4WCADOIlZkUQQt.HgZlKXoJiv7LA6Hu8GkyfTcu4aR6GHa',
+            23.7745978,
+            90.4219535,
+            '2021-12-27 00:00:00',
+            'male',
+            true,
+            '2023-04-01 14:14:05.603054',
+            '2023-04-01 16:09:54.343429');
+    """
+    conn.execute(text(query))
+
 def downgrade():
     op.drop_table('activationtoken')
     op.drop_table('follow')
-    op.drop_table('like')
+    op.drop_table('reaction')
     op.drop_table('photo')
     op.drop_table('gallery')
     op.drop_table('user')

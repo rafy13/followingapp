@@ -1,35 +1,38 @@
-import shutil
-import uuid
-import os
 import logging
-from fastapi import File, Request, Depends, UploadFile, status, responses, HTTPException, APIRouter
-from fastapi.security.utils import get_authorization_scheme_param
+from fastapi import (
+    File,
+    Request,
+    Depends,
+    UploadFile,
+    status,
+    responses,
+    HTTPException,
+    APIRouter,
+    exceptions)
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from db.session import get_db
 from webapp.photos.create_gallery_form import CreateGalleryForm
 from webapp.photos.upload_photo_form import CreatePhotoForm
-from db.repository.photo import create_new_photo, fetch_timeline_photos
-from db.repository.gallery import create_new_gallery, retrieve_gallery, retrive_gallery_by_user_id
-from apis.users_api import get_current_user_from_token
+from db.repository.photo import PhotoRepository
+from db.repository.gallery import GalleryRepository
 from db.models.users import User
 from schemas.photos import CreateGallery, CreatePhoto
 from services.user_service import UserService
 from services.photo_service import PhotoService
+from services.auth_service import AuthHandlerService
 
 templates = Jinja2Templates(directory="templates")
 router = APIRouter(include_in_schema=False)
 
 @router.get('/')
 def get_timeline(request: Request, db: Session = Depends(get_db)):
+    photo_repository = PhotoRepository(db)
     try:
-        token = request.cookies.get("access_token")
-        _, param = get_authorization_scheme_param(
-            token
-        )
-        current_user: User = get_current_user_from_token(token=param, db=db)
-        photos = fetch_timeline_photos(current_user, db)
+        auth_service = AuthHandlerService(db)
+        current_user: User = auth_service.get_authenticated_user(token=request.cookies.get("access_token"))
+        photos = photo_repository.get_timeline_photos(current_user)
         return templates.TemplateResponse("photos/timeline.html", {"request": request, "photos": photos})
     except HTTPException as error:
         return responses.RedirectResponse("/login", status_code=status.HTTP_302_FOUND)
@@ -41,32 +44,32 @@ def get_timeline(request: Request, db: Session = Depends(get_db)):
 @router.post('/gallery/new')
 async def create_gallery(request: Request, db: Session = Depends(get_db)):
     form = CreateGalleryForm(request)
+    gallery_repository = GalleryRepository(db)
     await form.load_data()
     if await form.is_valid():
         try:
-            token = request.cookies.get("access_token")
-            _, param = get_authorization_scheme_param(token)
-            current_user: User = get_current_user_from_token(token=param, db=db)
-        except Exception as e:
+            auth_service = AuthHandlerService(db)
+            current_user: User = auth_service.get_authenticated_user(token=request.cookies.get("access_token"))
+        except Exception as error:
+            logging.error(error, exc_info=error)
             return responses.RedirectResponse("/login", status_code=status.HTTP_302_FOUND)
         try:
             gallery = CreateGallery(name = form.name)
-            gallery = create_new_gallery(gallery=gallery, user = current_user, db=db)
+            db_gallery = gallery_repository.create(gallery=gallery, user = current_user)
             return responses.RedirectResponse("/myprofile", status_code=status.HTTP_302_FOUND)
         except Exception as error:
-            logging.error(error, exc_info=e)
+            logging.error(error, exc_info=error)
 
 @router.get("/gallery/{id}")
 def fetch_gallery(id: int, request: Request, db: Session = Depends(get_db)):
+    gallery_repository = GalleryRepository(db)
     try:
-        token = request.cookies.get("access_token")
-        _, param = get_authorization_scheme_param(
-            token
-        )
-        current_user: User = get_current_user_from_token(token=param, db=db)
-    except Exception as error:
+        auth_service = AuthHandlerService(db)
+        current_user: User = auth_service.get_authenticated_user(token=request.cookies.get("access_token"))
+    except HTTPException as error:
+        logging.error(error, exc_info=error)
         return responses.RedirectResponse("/login", status_code=status.HTTP_302_FOUND)
-    gallery = retrieve_gallery(id=id, db=db)
+    gallery = gallery_repository.get(id=id)
     user_service = UserService(db)
     return templates.TemplateResponse(
         "photos/gallery_details.html", {
@@ -78,47 +81,43 @@ def fetch_gallery(id: int, request: Request, db: Session = Depends(get_db)):
     )
 
 @router.post("/gallery/{id}/upload-image")
-async def upload_photo(request: Request, id: int, db: Session = Depends(get_db), photo: UploadFile = File(...)):
-    form = CreatePhotoForm(request)
-    await form.load_data()
-    token = request.cookies.get("access_token")
-    _, param = get_authorization_scheme_param(
-        token
-    )
-    current_user: User = get_current_user_from_token(token=param, db=db)
-    gallery = retrive_gallery_by_user_id(
-        id=id,
-        user_id=current_user.id,
-        db=db
-    )
-    if not gallery:
-        raise HTTPException(status_code=404, detail="Gallery not found")
-
-    # Save photo file
-    file_name = str(uuid.uuid4())+photo.filename
-    file_path = f"static/uploads/{id}/{file_name}"
-    os.makedirs(os.path.dirname(file_path), exist_ok=True)
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(photo.file, buffer)
-    photo = CreatePhoto(filename = f"uploads/{id}/{file_name}", caption = form.caption)
-    db_photo = create_new_photo(
-        photo=photo,
-        user=current_user,
-        gallery=gallery,
-        db=db
-    )
-
-    return templates.TemplateResponse("photos/gallery_details.html", {"request": request, "gallery": gallery})
-
+async def upload_photo(request: Request, id: int, db: Session = Depends(get_db), image_file: UploadFile = File(...)):
+    try:
+        form = CreatePhotoForm(request)
+        photo_service = PhotoService(db)
+        await form.load_data()
+        auth_service = AuthHandlerService(db)
+        current_user: User = auth_service.get_authenticated_user(token=request.cookies.get("access_token"))
+        _, gallery = photo_service.upload_photo(gallery_id=id, user=current_user, image_file=image_file, form=form)
+        return templates.TemplateResponse(
+            "photos/gallery_details.html", {
+                "request": request,
+                "gallery": gallery,
+                "is_owner": True
+            }
+        )
+    except HTTPException as error:
+         logging.error(error)
+         return responses.RedirectResponse("/login", status_code=status.HTTP_302_FOUND)
+    except exceptions.RequestValidationError as error:
+        logging.error(error)
+        return templates.TemplateResponse(
+            "photos/gallery_details.html", {
+                "request": request,
+                "gallery": gallery,
+                "is_owner": True,
+                "errors": ["Please upload a valid image"]
+            }
+        )
+    except Exception as e:
+        logging.error(e, exc_info=e)
+        raise e
 
 @router.post("/photos/{id}/toggle_like", response_class=responses.HTMLResponse)
 async def toggle_like(id: int, request: Request, db: Session = Depends(get_db)):
     try:
-        token = request.cookies.get("access_token")
-        _, param = get_authorization_scheme_param(
-            token
-        )
-        current_user: User = get_current_user_from_token(token=param, db=db)
+        auth_service = AuthHandlerService(db)
+        current_user: User = auth_service.get_authenticated_user(token=request.cookies.get("access_token"))
         photo_service = PhotoService(db)
         photo_service.toggle_like(current_user, id)
         return responses.RedirectResponse("/", status_code=status.HTTP_302_FOUND)
@@ -129,15 +128,11 @@ async def toggle_like(id: int, request: Request, db: Session = Depends(get_db)):
 @router.post("/photos/{id}/toggle_dislike", response_class=responses.HTMLResponse)
 async def toggle_dislike(id: int, request: Request, db: Session = Depends(get_db)):
     try:
-        token = request.cookies.get("access_token")
-        _, param = get_authorization_scheme_param(
-            token
-        )
-        current_user: User = get_current_user_from_token(token=param, db=db)
+        auth_service = AuthHandlerService(db)
+        current_user: User = auth_service.get_authenticated_user(token=request.cookies.get("access_token"))
         photo_service = PhotoService(db)
         photo_service.toggle_dislike(current_user, id)
         return responses.RedirectResponse("/", status_code=status.HTTP_302_FOUND)
     except HTTPException as error:
         logging.error(error, exc_info=error)
         return responses.RedirectResponse("/login", status_code=status.HTTP_302_FOUND)
-

@@ -8,36 +8,41 @@
     {% include 'common/nav_bar.html' %}
     <div class="container">
         <h1>{{ gallery.name }}</h1>
-        <div class="row">
-            <div class="col-md-6">
-                <h2>Add Photo</h2>
-                <form method="post" action="/gallery/{{ gallery.id }}/upload-image" enctype="multipart/form-data">
-                    <div class="form-group">
-                        <label for="photo">Select a photo:</label>
-                        <input type="file" class="form-control-file" id="photo" name="photo" accept="image/*" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="caption">Caption:</label>
-                        <input type="text" class="form-control" id="caption" name="caption" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Upload Photo</button>
-                </form>
-            </div>
-        </div>
-        <hr>
-        <h2>Photos</h2>
-        <div class="row">
-            {% for photo in gallery.photos %}
-            <div class="col-sm-6 col-md-4">
-                <div class="thumbnail">
-                    <img src="{{ url_for('static', path=photo.filename) }}" alt="{{ photo.caption }}" class="img-responsive" height="200" width="200">
-                    <div class="caption">
-                        <h6>{{ photo.caption }}</h6>
-                        <p>Uploaded by {{ photo.owner.name }} on {{ photo.created_at.strftime('%Y-%m-%d') }}</p>
-                    </div>
+        <h6>Created by <a href="/users/{{ gallery.owner.id }}">{{ gallery.owner.name }}</a></h3>
+        {% if is_owner %}
+            <div class="row">
+                <div class="col-md-6">
+                    <h2>Add Photo</h2>
+                    <form method="post" action="/gallery/{{ gallery.id }}/upload-image" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <label for="image_file">Select a photo:</label>
+                            <input type="file" class="form-control-file" id="image_file" name="image_file" accept="image/*" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="caption">Caption:</label>
+                            <input type="text" class="form-control" id="caption" name="caption" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Upload Photo</button>
+                    </form>
                 </div>
             </div>
-            {% endfor %}
-        </div>
+        {% endif %}
+        <hr>
+        {% if is_owner or is_follower %}
+            <h2>Photos</h2>
+            <div class="row">
+                {% for photo in gallery.photos %}
+                <div class="col-sm-6 col-md-4">
+                    <div class="thumbnail">
+                        <img src="{{ url_for('static', path=photo.filename) }}" alt="{{ photo.caption }}" class="img-responsive" height="200" width="200">
+                        <div class="caption">
+                            <h6>{{ photo.caption }}</h6>
+                            <p>Uploaded by {{ photo.owner.name }} on {{ photo.created_at.strftime('%Y-%m-%d') }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% endif %}
     </div>
 {% endblock %}

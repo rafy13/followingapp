@@ -7,7 +7,6 @@
 {% block content %}
   {% include 'common/nav_bar.html' %}
   <div class="container">
-    <h1>Photo List</h1>
     <div class="row">
       {% for item in photos %}
         {% set photo = item.Photo %}
@@ -19,7 +18,7 @@
               <h6>{{ photo.caption }}</h6>
               <p><a href="/users/{{ photo.owner.id }}">{{ photo.owner.name }}</a> uploaded to <a href="/gallery/{{ photo.gallery.id }}">{{ photo.gallery.name }}</a> on {{ photo.created_at.strftime('%Y-%m-%d') }}</p>
             </div>
-            <img src="{{ photo.image_url }}" class="card-img-top" alt="{{ photo.title }}">
+            <img src="{{ url_for('static', path=photo.filename) }}" class="card-img-top" alt="{{ photo.title }}">
             <div class="card-body">
               <h4 class="card-title">{{ photo.title }}</h4>
               <p class="card-text">Likes: {{ photo.like_count }} Dislikes: {{ photo.dislike_count }}</p>

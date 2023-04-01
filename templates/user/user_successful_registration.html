@@ -1,7 +1,7 @@
 {% extends "common/base.html" %}
 
 {% block title %}
-    <title>Account Activation</title>    
+    <title>Successful registration</title>    
 {% endblock %}
 
 {% block content %}
@@ -11,15 +11,9 @@
       <div class="card">
         <div class="card-header">{{ title }}</div>
         <div class="card-body">
-          {% if user %}
           <div class="alert alert-success" role="alert">
-            <p>Your account is activated. <a href="{{ url_for('login') }}">Please login</a> </p>
+              <p>Your account is registered successfully. An email has been sent to your provided email. Please activate your account with the provided activation url and then <a href="{{ url_for('login') }}">login</a> </p>
           </div>
-          {% else %}
-          <div class="alert alert-danger" role="alert">
-            <p>Invalid url.</p>
-          </div>
-          {% endif %}
         </div>
       </div>
     </div>

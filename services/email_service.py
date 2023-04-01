@@ -1,8 +1,6 @@
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from email.mime.image import MIMEImage
-from typing import Optional
 from core.config import settings
 
 class GmailService:
