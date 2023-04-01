@@ -16,6 +16,7 @@
           <div class="card-body">
             <h4 class="card-title"><a href="/users/{{ user.id }}">{{ user.name }}</a></h4>
             <p class="card-text">Age: {{ user.age }}</p>
+            <p class="card-text">Gender: {{ user.gender }}</p>
             <p class="card-text">Distance: {{ user.distance/1000 }} km</p>
             <form method="post" action="/users/{{ user.id }}/toggle_follow">
               {% if user.followed_by_current_user %}

@@ -62,6 +62,7 @@ class UserRepository(BaseRepository[User]):
             User.id,
             User.name,
             User.profile_image,
+            User.gender,
             func.date_part('year', func.age(User.date_of_birth)).label("age"),
             distance_query.label('distance'),
             User.followers.any(follower_id=current_user.id).label('followed_by_current_user')
