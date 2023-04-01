@@ -1,0 +1,33 @@
+{% extends "common/base.html" %}
+
+{% block title %}
+    <title>User List</title>    
+{% endblock %}
+
+{% block content %}
+  {% include 'common/nav_bar.html' %}
+  <div class="container">
+    <h1>User List</h1>
+    <div class="row">
+      {% for user in users %}
+      <div class="col-md-4">
+        <div class="card mb-4 shadow-sm">
+          <img src="{{ url_for('static', path=user.profile_image if user.profile_image else '') }}" class="card-img-top" alt="{{ user.name }}">
+          <div class="card-body">
+            <h4 class="card-title"><a href="/users/{{ user.id }}">{{ user.name }}</a></h4>
+            <p class="card-text">Age: {{ user.age }}</p>
+            <p class="card-text">Distance: {{ user.distance/1000 }} km</p>
+            <form method="post" action="/users/{{ user.id }}/toggle_follow">
+              {% if user.followed_by_current_user %}
+                <button type="submit" class="btn btn-danger">Unfollow</button>
+              {% else %}
+                <button type="submit" class="btn btn-primary">Follow</button>
+              {% endif %}
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+{% endblock %}

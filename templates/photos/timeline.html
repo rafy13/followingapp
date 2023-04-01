@@ -1,0 +1,48 @@
+{% extends "common/base.html" %}
+
+{% block title %}
+    <title>Photo List</title>    
+{% endblock %}
+
+{% block content %}
+  {% include 'common/nav_bar.html' %}
+  <div class="container">
+    <h1>Photo List</h1>
+    <div class="row">
+      {% for item in photos %}
+        {% set photo = item.Photo %}
+        {% set has_liked = item.has_liked %}
+        {% set has_disliked = item.has_disliked %}
+        <div class="col-md-4">
+          <div class="card mb-4 shadow-sm">
+            <div class="caption">
+              <h6>{{ photo.caption }}</h6>
+              <p><a href="/users/{{ photo.owner.id }}">{{ photo.owner.name }}</a> uploaded to <a href="/gallery/{{ photo.gallery.id }}">{{ photo.gallery.name }}</a> on {{ photo.created_at.strftime('%Y-%m-%d') }}</p>
+            </div>
+            <img src="{{ photo.image_url }}" class="card-img-top" alt="{{ photo.title }}">
+            <div class="card-body">
+              <h4 class="card-title">{{ photo.title }}</h4>
+              <p class="card-text">Likes: {{ photo.like_count }} Dislikes: {{ photo.dislike_count }}</p>
+              <div class="btn-group" role="group" aria-label="Like and Dislike Buttons">
+                <form method="POST" action="/photos/{{ photo.id }}/toggle_like">
+                  {% if has_liked %}
+                    <button type="submit" class="btn btn-primary">Like</button>
+                  {% else %}
+                    <button type="submit" class="btn btn-secondary">Like</button>
+                  {% endif %}
+                </form>
+                <form method="POST" action="/photos/{{ photo.id }}/toggle_dislike">
+                  {% if has_disliked %}
+                    <button type="submit" class="btn btn-primary">Dislike</button>
+                  {% else %}
+                    <button type="submit" class="btn btn-secondary">Dislike</button>
+                  {% endif %}
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+{% endblock %}
