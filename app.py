@@ -2,7 +2,9 @@ import uvicorn
 from fastapi import APIRouter, FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from smtplib import SMTPAuthenticationError
 
+from exceptions.exception_handler import smtp_exception_handler
 from webapp.auth import route_auth
 from webapp.users import router_user
 from webapp.photos import route_photo
@@ -16,6 +18,8 @@ api_router.include_router(route_photo.router, prefix="", tags=["photos-webapp"])
 
 app = FastAPI()
 app.include_router(api_router)
+app.add_exception_handler(SMTPAuthenticationError, smtp_exception_handler)
+
 
 templates = Jinja2Templates(directory="templates")
 

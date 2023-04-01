@@ -1,4 +1,6 @@
 import smtplib
+import logging
+
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from core.config import settings
@@ -24,9 +26,12 @@ class GmailService:
         message['Subject'] = subject
         body = MIMEText(body)
         message.attach(body)
-
-        smtp_server = smtplib.SMTP(self.smtp_server, self.smtp_port)
-        smtp_server.starttls()
-        smtp_server.login(self.email, self.password)
-        smtp_server.sendmail(self.email, to_email, message.as_string())
-        smtp_server.quit()
+        try:
+            smtp_server = smtplib.SMTP(self.smtp_server, self.smtp_port)
+            smtp_server.starttls()
+            smtp_server.login(self.email, self.password)
+            smtp_server.sendmail(self.email, to_email, message.as_string())
+            smtp_server.quit()
+        except Exception as error:
+            logging.error(f"Unable to Send user activation url to: {to_email}", error, exc_info=error)
+            raise error
